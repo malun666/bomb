@@ -1,5 +1,11 @@
 # minegame for fun
 
+it's a minegame for fun, power by vue.
+
+game image
+
+![](./public/bomb.png)
+
 ## Project setup
 
 ```sh
