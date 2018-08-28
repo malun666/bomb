@@ -4,7 +4,7 @@
       <tbody>
         <tr v-for="(rowItems, index) of bombArray" :key="'row_' + index">
           <td @mousedown="cellClick(colItem, $event)" :class="{'show-bomb': colItem.showBomb, bomb: colItem.isBomb,mark: colItem.isMarked, 'mined-clear': colItem.minedClear}" :style="{width: cellWidth+'px', height: cellHeight + 'px'}" v-for="(colItem, index) of rowItems" :key="'col_' + index">
-            <span v-if="!colItem.isBomb && colItem.minedClear && colItem.str != '0'" :style="{color: getFontColor(colItem.str)}">{{colItem.str}}</span>
+            <span v-if="!colItem.isBomb && colItem.minedClear && colItem.str !== '0'" :style="{color: getFontColor(colItem.str)}">{{colItem.str}}</span>
           </td>
         </tr>
       </tbody>
@@ -29,7 +29,6 @@ export default {
   },
   watch: {
     rows() {
-      console.log(1);
       this.initRandomBombs();
     },
     cols() {
@@ -57,7 +56,7 @@ export default {
           //  不是炸弹，那么把雷区亮明。
           this.$set(item, "minedClear", true);
           // 设置 周围不是炸弹的同伴为mindedclear
-          this.clearPartner(item.pos.x, item.pos.y);
+          item.str === "0" && this.clearPartner(item);
         }
       } else {
         // 点击右键
@@ -68,15 +67,17 @@ export default {
       e.stopPropagation();
       e.preventDefault();
     },
-    clearPartner(rowIndex, colIndex) {
+    clearPartner(item) {
+      let { x: rowIndex, y: colIndex } = item.pos;
       // 清空上下左右的地雷
       const _innerPartner = cell => {
         if (!cell.isBomb && !cell.minedClear) {
           this.$set(cell, "minedClear", true);
-          setTimeout(() => {
-            console.log(cell);
-            this.clearPartner(cell.pos.x, cell.pos.y);
-          }, 1);
+          if (cell.str == "0") {
+            setTimeout(() => {
+              this.clearPartner(cell);
+            }, 1);
+          }
         }
       };
       // up
@@ -115,6 +116,7 @@ export default {
         randomIndex++;
         randomIndex %= this.rows * this.cols;
       }
+      this.bombArray = [];
       for (let i = 0; i < this.rows; i++) {
         this.$set(this.bombArray, i, []);
         for (let j = 0; j < this.cols; j++) {
@@ -145,8 +147,8 @@ export default {
     // 获取周围的炸弹数据
     getArroundBombs(rowIndex, colIndex, arr) {
       let count = 0;
-      let rowLen = arr.length;
-      let colLen = arr[0].length;
+      let rowLen = this.rows;
+      let colLen = this.cols;
       // 3行 3 列的数据相加即可得到总数据，然后扣掉元素本身的数据即可得到所有的数据。
       for (let r = -1; r <= 1; r++) {
         if (rowIndex + r < 0 || rowIndex + r >= rowLen) continue;
@@ -157,7 +159,7 @@ export default {
           }
         }
       }
-      return count;
+      return count + "";
     },
     getFontColor(num) {
       num = +num;
@@ -222,7 +224,7 @@ export default {
   background-color: #321 !important;
 }
 .bomb {
-  background-color: red;
+  // background-color: red;
 }
 table {
   border-collapse: collapse;
