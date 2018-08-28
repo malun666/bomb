@@ -2,9 +2,14 @@
   <div id="app">
     <div class="layout">
       <div class="main">
-        <mine-table :rows="rows" :cell-height="cellHeight" :cell-width="cellWidth" :cols="columns"></mine-table>      
+        <mine-table :rows="rows" :cell-height="cellHeight" :cell-width="cellWidth" :cols="columns"></mine-table>
       </div>
       <div class="aside">
+        <div class="block">
+          <span class="demonstration">难度：{{getLevelLable}}</span>
+          <el-slider :min="1" :max="3" v-model="level"></el-slider>
+        </div>
+        <hr>
         <div class="block">
           <span class="demonstration">列数：{{columns}}</span>
           <el-slider :min="1" v-model="columns"></el-slider>
@@ -13,6 +18,10 @@
           <span class="demonstration">行数：{{rows}}</span>
           <el-slider :min="1" v-model="rows"></el-slider>
         </div>
+        <hr>
+        <el-switch style="display: block" v-model="isCellSync" active-color="#13ce66" inactive-color="#ff4949" active-text="单元格宽高同步">
+        </el-switch>
+        <hr>
         <div class="block">
           <span class="demonstration">单元格宽：{{cellWidth}}</span>
           <el-slider :min="1" v-model="cellWidth"></el-slider>
@@ -34,8 +43,36 @@ export default {
       rows: 10,
       columns: 10,
       cellWidth: 30,
-      cellHeight: 30
+      cellHeight: 30,
+      isCellSync: true,
+      level: 1
     };
+  },
+  computed: {
+    getLevelLable() {
+      switch (this.level) {
+        case 1:
+          return "简单";
+        case 2:
+          return "中级";
+        case 3:
+          return "高级";
+        default:
+          return "简单";
+      }
+    }
+  },
+  watch: {
+    cellWidth: function(newVal) {
+      if (this.isCellSync) {
+        this.cellHeight = newVal;
+      }
+    },
+    cellHeight: function(newVal) {
+      if (this.isCellSync) {
+        this.cellWidth = newVal;
+      }
+    }
   },
   components: {
     "mine-table": MineTable
