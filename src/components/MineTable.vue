@@ -3,9 +3,8 @@
     <table>
       <tbody>
         <tr v-for="(rowItems, index) of bombArray" :key="'row_' + index">
-          <td @mousedown="cellClick(colItem, $event)" :class="{bomb: colItem.isBomb, 'mined-clear': colItem.isBomb && colItem.minedClear}" :style="{width: cellWidth+'px', height: cellHeight + 'px'}" v-for="(colItem, index) of rowItems" :key="'col_' + index">
-            <template v-if="!colItem.isBomb">{{colItem.str}}</template>
-            <template v-else>{{colItem.data}}</template>
+          <td @mousedown="cellClick(colItem, $event)" :class="{'show-bomb': colItem.showBomb, bomb: colItem.isBomb,mark: colItem.isMarked, 'mined-clear': colItem.minedClear}" :style="{width: cellWidth+'px', height: cellHeight + 'px'}" v-for="(colItem, index) of rowItems" :key="'col_' + index">
+            <span v-if="!colItem.isBomb && colItem.minedClear && colItem.str != '0'" :style="{color: getFontColor(colItem.str)}">{{colItem.str}}</span>
           </td>
         </tr>
       </tbody>
@@ -14,6 +13,7 @@
 </template>
 
 <script>
+import EventBus from "../plugins/eventBus";
 export default {
   name: "mine-tbale",
   data() {
@@ -23,6 +23,9 @@ export default {
   },
   created() {
     this.initRandomBombs();
+    EventBus.$on("reset-table", () => {
+      this.initRandomBombs();
+    });
   },
   watch: {
     rows() {
@@ -38,16 +41,64 @@ export default {
   },
   methods: {
     cellClick(item, e) {
-      console.log(e.button);
-      if (item.isBomb && e.button == 0) {
-        this.$emit("bomb", "bomb");
-        console.log("炸裂1");
-        return;
+      // 如果已经清理了，就直接结束。
+      if (item.minedClear) return;
+
+      if (e.button === 0) {
+        if (item.isBomb) {
+          if (item.isMarked) return; // 如果已经标记过，那么就是 误操作。
+          this.$emit("bomb", "bomb");
+          this.bombArray.forEach(item => {
+            item.forEach(cell => {
+              cell.isBomb && this.$set(cell, "showBomb", "true");
+            });
+          });
+        } else {
+          //  不是炸弹，那么把雷区亮明。
+          this.$set(item, "minedClear", true);
+          // 设置 周围不是炸弹的同伴为mindedclear
+          this.clearPartner(item.pos.x, item.pos.y);
+        }
+      } else {
+        // 点击右键
+        if (!item.minedClear) {
+          this.$set(item, "isMarked", !item.isMarked);
+        }
       }
-      item.minedClear = true;
       e.stopPropagation();
       e.preventDefault();
-      this.$forceUpdate();
+    },
+    clearPartner(rowIndex, colIndex) {
+      // 清空上下左右的地雷
+      const _innerPartner = cell => {
+        if (!cell.isBomb && !cell.minedClear) {
+          this.$set(cell, "minedClear", true);
+          setTimeout(() => {
+            console.log(cell);
+            this.clearPartner(cell.pos.x, cell.pos.y);
+          }, 1);
+        }
+      };
+      // up
+      if (rowIndex - 1 >= 0) {
+        let upCell = this.bombArray[rowIndex - 1][colIndex];
+        _innerPartner(upCell);
+      }
+      // down
+      if (rowIndex + 1 < this.rows) {
+        let downCell = this.bombArray[rowIndex + 1][colIndex];
+        _innerPartner(downCell);
+      }
+      // left
+      if (colIndex - 1 >= 0) {
+        let leftCell = this.bombArray[rowIndex][colIndex - 1];
+        _innerPartner(leftCell);
+      }
+      // right
+      if (colIndex + 1 < this.cols) {
+        let rightCell = this.bombArray[rowIndex][colIndex + 1];
+        _innerPartner(rightCell);
+      }
     },
     initRandomBombs() {
       if (this.rows <= 0 || this.cols <= 0) {
@@ -55,7 +106,6 @@ export default {
       }
       let bombs = Math.floor(this.level * 0.15 * this.rows * this.cols);
       let bombSet = new Set();
-      console.log(bombs);
       let randomIndex = -1; // eslint-disable-line
       randomIndex += 1;
       while (bombSet.size < bombs) {
@@ -65,27 +115,34 @@ export default {
         randomIndex++;
         randomIndex %= this.rows * this.cols;
       }
-      console.log(bombSet);
       for (let i = 0; i < this.rows; i++) {
-        this.bombArray[i] = [];
+        this.$set(this.bombArray, i, []);
         for (let j = 0; j < this.cols; j++) {
           let k = i * this.cols + j;
           let isBomb = bombSet.has(k);
-          this.bombArray[i][j] = {
+          this.$set(this.bombArray[i], j, {
             isBomb,
-            data: +isBomb,
+            pos: { x: i, y: j },
             str: "",
-            minedClear: false
-          };
+            minedClear: false,
+            isMarked: false,
+            showBomb: false
+          });
         }
       }
+
+      // 把每个非炸弹的区域周围的炸弹💣个数初始化
       for (let i = 0; i < this.rows; i++) {
         for (let j = 0; j < this.cols; j++) {
-          this.bombArray[i][j].str = this.getArroundBombs(i, j, this.bombArray);
+          this.$set(
+            this.bombArray[i][j],
+            "str",
+            this.getArroundBombs(i, j, this.bombArray)
+          );
         }
       }
-      this.$forceUpdate();
     },
+    // 获取周围的炸弹数据
     getArroundBombs(rowIndex, colIndex, arr) {
       let count = 0;
       let rowLen = arr.length;
@@ -101,6 +158,27 @@ export default {
         }
       }
       return count;
+    },
+    getFontColor(num) {
+      num = +num;
+      switch (num) {
+        case 1:
+          return "red";
+        case 2:
+          return "lightblue";
+        case 3:
+          return "#c09";
+        case 4:
+          return "yellow";
+        case 5:
+          return "#8a0";
+        case 6:
+          return "#180";
+        case 7:
+          return "#d96";
+        default:
+          return "white";
+      }
     }
   },
   props: {
@@ -132,8 +210,16 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+.show-bomb {
+  background: url(../assets/bomb.png);
+  background-size: contain;
+}
+.mark {
+  background: url(../assets/hq.png);
+  background-size: cover;
+}
 .mined-clear {
-  background-color: green !important;
+  background-color: #321 !important;
 }
 .bomb {
   background-color: red;

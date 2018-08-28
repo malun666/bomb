@@ -30,12 +30,15 @@
           <span class="demonstration">单元格高度：{{cellHeight}}</span>
           <el-slider :min="1" v-model="cellHeight"></el-slider>
         </div>
-      </div>
+        <hr>
+        <input @click="reset" type="button" value="重置">
+      </div> 
     </div>
   </div>
 </template>
 <script>
 import MineTable from "./components/MineTable";
+import EventBus from "./plugins/eventBus.js";
 export default {
   name: "app",
   data: function() {
@@ -52,6 +55,11 @@ export default {
     document.oncontextmenu = function() {
       return false;
     };
+  },
+  methods: {
+    reset() {
+      EventBus.$emit("reset-table");
+    }
   },
   computed: {
     getLevelLable() {
