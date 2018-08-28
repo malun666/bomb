@@ -3,7 +3,7 @@
     <table>
       <tbody>
         <tr v-for="(rowItems, index) of bombArray" :key="'row_' + index">
-          <td :class="{bomb: colItem.isBomb}" :style="{width: cellWidth+'px', height: cellHeight + 'px'}" v-for="(colItem, index) of rowItems" :key="'col_' + index">
+          <td @mousedown="cellClick(colItem, $event)" :class="{bomb: colItem.isBomb, 'mined-clear': colItem.isBomb && colItem.minedClear}" :style="{width: cellWidth+'px', height: cellHeight + 'px'}" v-for="(colItem, index) of rowItems" :key="'col_' + index">
             <template v-if="!colItem.isBomb">{{colItem.str}}</template>
             <template v-else>{{colItem.data}}</template>
           </td>
@@ -31,21 +31,51 @@ export default {
     },
     cols() {
       this.initRandomBombs();
+    },
+    level() {
+      this.initRandomBombs();
     }
   },
   methods: {
+    cellClick(item, e) {
+      console.log(e.button);
+      if (item.isBomb && e.button == 0) {
+        this.$emit("bomb", "bomb");
+        console.log("炸裂1");
+        return;
+      }
+      item.minedClear = true;
+      e.stopPropagation();
+      e.preventDefault();
+      this.$forceUpdate();
+    },
     initRandomBombs() {
       if (this.rows <= 0 || this.cols <= 0) {
         return;
       }
+      let bombs = Math.floor(this.level * 0.15 * this.rows * this.cols);
+      let bombSet = new Set();
+      console.log(bombs);
+      let randomIndex = -1; // eslint-disable-line
+      randomIndex += 1;
+      while (bombSet.size < bombs) {
+        bombSet.add(
+          Math.round((Math.random() * 7287) % (this.cols * this.rows))
+        );
+        randomIndex++;
+        randomIndex %= this.rows * this.cols;
+      }
+      console.log(bombSet);
       for (let i = 0; i < this.rows; i++) {
         this.bombArray[i] = [];
         for (let j = 0; j < this.cols; j++) {
-          let isBomb = Math.round(Math.random());
+          let k = i * this.cols + j;
+          let isBomb = bombSet.has(k);
           this.bombArray[i][j] = {
             isBomb,
             data: +isBomb,
-            str: ""
+            str: "",
+            minedClear: false
           };
         }
       }
@@ -54,6 +84,7 @@ export default {
           this.bombArray[i][j].str = this.getArroundBombs(i, j, this.bombArray);
         }
       }
+      this.$forceUpdate();
     },
     getArroundBombs(rowIndex, colIndex, arr) {
       let count = 0;
@@ -73,6 +104,11 @@ export default {
     }
   },
   props: {
+    level: {
+      type: Number,
+      required: true,
+      default: 1
+    },
     rows: {
       type: Number,
       required: true
@@ -84,18 +120,21 @@ export default {
     cellHeight: {
       type: Number,
       required: true,
-      default: 30
+      default: 40
     },
     cellWidth: {
       type: Number,
       required: true,
-      default: 30
+      default: 40
     }
   }
 };
 </script>
 
 <style lang="scss" scoped>
+.mined-clear {
+  background-color: green !important;
+}
 .bomb {
   background-color: red;
 }

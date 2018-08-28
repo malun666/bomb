@@ -2,12 +2,12 @@
   <div id="app">
     <div class="layout">
       <div class="main">
-        <mine-table :rows="rows" :cell-height="cellHeight" :cell-width="cellWidth" :cols="columns"></mine-table>
+        <mine-table :level="level" :rows="rows" :cell-height="cellHeight" :cell-width="cellWidth" :cols="columns"></mine-table>
       </div>
       <div class="aside">
         <div class="block">
           <span class="demonstration">难度：{{getLevelLable}}</span>
-          <el-slider :min="1" :max="3" v-model="level"></el-slider>
+          <el-slider show-stops :min="1" :max="3" v-model="level"></el-slider>
         </div>
         <hr>
         <div class="block">
@@ -42,10 +42,15 @@ export default {
     return {
       rows: 10,
       columns: 10,
-      cellWidth: 30,
-      cellHeight: 30,
+      cellWidth: 40,
+      cellHeight: 40,
       isCellSync: true,
       level: 1
+    };
+  },
+  created() {
+    document.oncontextmenu = function() {
+      return false;
     };
   },
   computed: {
@@ -85,6 +90,7 @@ export default {
   .layout {
     display: flex;
     flex-flow: row nowrap;
+    font-size: 14px;
   }
   .layout > div {
     min-height: 300px;
@@ -95,7 +101,8 @@ export default {
     flex: 5 0 500px;
   }
   .aside {
-    flex: 1 0 100px;
+    padding: 10px;
+    flex: 2 0 100px;
   }
 }
 </style>
