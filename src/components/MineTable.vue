@@ -18,35 +18,50 @@ export default {
   name: "mine-tbale",
   data() {
     return {
-      bombArray: []
+      bombArray: [],
+      isPlaying: 1 //1: 重置状态   2: 结束状态 3： 运行状态
     };
   },
   created() {
     this.initRandomBombs();
     EventBus.$on("reset-table", () => {
       this.initRandomBombs();
+      this.isPlaying = 1;
     });
   },
   watch: {
     rows() {
-      this.initRandomBombs();
+      EventBus.$emit("reset-table");
     },
     cols() {
-      this.initRandomBombs();
+      EventBus.$emit("reset-table");
     },
     level() {
-      this.initRandomBombs();
+      EventBus.$emit("reset-table");
     }
   },
   methods: {
     cellClick(item, e) {
+      if (this.isPlaying === 1) {
+        EventBus.$emit("begin-play", Date.now());
+      } else if (this.isPlaying === 2) {
+        return;
+      }
+
+      this.isPlaying = 3;
       // 如果已经清理了，就直接结束。
       if (item.minedClear) return;
 
+      // 如果是已经被标记了，那么取消标记。
+      if (item.isMarked) {
+        this.$set(item, "isMarked", !item.isMarked);
+        return; // 如果已经标记过，那么就是 误操作。
+      }
+
       if (e.button === 0) {
         if (item.isBomb) {
-          if (item.isMarked) return; // 如果已经标记过，那么就是 误操作。
-          this.$emit("bomb", "bomb");
+          EventBus.$emit("bomb", Date.now());
+          this.isPlaying = 2; // 设置当前状态
           this.bombArray.forEach(item => {
             item.forEach(cell => {
               cell.isBomb && this.$set(cell, "showBomb", "true");
@@ -57,10 +72,12 @@ export default {
           this.$set(item, "minedClear", true);
           // 设置 周围不是炸弹的同伴为mindedclear
           item.str === "0" && this.clearPartner(item);
+          EventBus.$emit("click-cell");
         }
       } else {
         // 点击右键
         if (!item.minedClear) {
+          EventBus.$emit("click-cell");
           this.$set(item, "isMarked", !item.isMarked);
         }
       }
@@ -101,6 +118,7 @@ export default {
         _innerPartner(rightCell);
       }
     },
+    // 初始化表格和炸弹数据
     initRandomBombs() {
       if (this.rows <= 0 || this.cols <= 0) {
         return;
@@ -213,9 +231,19 @@ export default {
 
 <style lang="scss" scoped>
 .show-bomb {
-  background: url(../assets/bomb.png);
-  background-size: contain;
+  position: relative;
+  &::before {
+    position: absolute;
+    content: "";
+    top: 0;
+    height: 100%;
+    width: 100%;
+    background: url(../assets/bomb.png);
+    background-size: contain;
+    left: 0;
+  }
 }
+
 .mark {
   background: url(../assets/hq.png);
   background-size: cover;

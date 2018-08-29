@@ -3,6 +3,8 @@
     <div class="layout">
       <div class="main">
         <mine-table :level="level" :rows="rows" :cell-height="cellHeight" :cell-width="cellWidth" :cols="columns"></mine-table>
+        <hr>
+        <timer></timer>
       </div>
       <div class="aside">
         <div class="block">
@@ -12,11 +14,11 @@
         <hr>
         <div class="block">
           <span class="demonstration">列数：{{columns}}</span>
-          <el-slider :min="1" v-model="columns"></el-slider>
+          <el-slider :min="5" v-model="columns"></el-slider>
         </div>
         <div class="block">
           <span class="demonstration">行数：{{rows}}</span>
-          <el-slider :min="1" v-model="rows"></el-slider>
+          <el-slider :min="5" v-model="rows"></el-slider>
         </div>
         <hr>
         <el-switch style="display: block" v-model="isCellSync" active-color="#13ce66" inactive-color="#ff4949" active-text="单元格宽高同步">
@@ -31,14 +33,18 @@
           <el-slider :min="1" v-model="cellHeight"></el-slider>
         </div>
         <hr>
-        <input @click="reset" type="button" value="重置">
+        <el-button @click="reset"  type="danger">重置</el-button>
       </div> 
     </div>
+    <click-sound eventname="click-cell" source="a.mp3"></click-sound>
+    <click-sound eventname="bomb" source="b.mp3"></click-sound>
   </div>
 </template>
 <script>
 import MineTable from "./components/MineTable";
 import EventBus from "./plugins/eventBus.js";
+import Timer from "./components/Timer";
+import ClickSound from "./components/ClickSound";
 export default {
   name: "app",
   data: function() {
@@ -58,7 +64,16 @@ export default {
   },
   methods: {
     reset() {
-      EventBus.$emit("reset-table");
+      // this.$message.confir
+      this.$confirm("确认是否要重置?", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning"
+      })
+        .then(() => {
+          EventBus.$emit("reset-table");
+        })
+        .catch(() => {});
     }
   },
   computed: {
@@ -88,7 +103,9 @@ export default {
     }
   },
   components: {
-    "mine-table": MineTable
+    "mine-table": MineTable,
+    timer: Timer,
+    "click-sound": ClickSound
   }
 };
 </script>
